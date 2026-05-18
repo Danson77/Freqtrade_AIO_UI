@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.pyc
+
+# Env/secrets
+.env
+*.env
+*.key
+*.pem
+
+# Freqtrade runtime/generated
+*.sqlite
+*.sqlite3
+*.db
+*.log
+user_data/logs/
+user_data/backtest_results/
+user_data/hyperopt_results/
+user_data/plot/
+
+# AIO local job/runtime state
+user_data/tools/Main_Py/Freqtrade_AIO_UI/jobs/
+
+# Windows folder metadata
+desktop.ini
+**/desktop.ini
