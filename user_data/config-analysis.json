@@ -1,0 +1,159 @@
+{
+  // ~~ Paths and Logging ~~
+  "bot_name": "PC-Analysis",
+  "user_data_dir": "user_data",
+  "logfile": "user_data/logs/analysis/freqtrade_analysis.log",
+  "add_config_files": [
+    "pair_list/test/analysis_list.json",
+    "pair_list/private/config-private.json"
+  ],
+  "db_url": "sqlite:///user_data/sqlite/analysis-trades_v3.sqlite",
+  // ~~ Strategy ~~
+  "strategy": "",
+  "strategy_path": "user_data/strategies/",
+  "recursive_strategy_search": false,
+  // ~~ Bot Parameters ~~
+  "max_open_trades": -1,
+  "force_entry_enable": false,
+  "cancel_open_orders_on_exit": false,
+  // ~~ Wallet Managment parameters ~~
+  "stake_currency": "USDT",
+  "trading_mode": "spot",
+  //"margin_mode": "",
+  // ~~ Dry-run ~~
+  "dry_run": true,
+  "dry_run_wallet": 1000000000,
+  "stake_amount": 10000,
+  // ~~ Timeout ~~
+  "ignore_buying_expired_candle_after": 120,
+  "disable_dataframe_checks": false,
+  "unfilledtimeout": {
+    "entry": 60,
+    "exit": 60,
+    "exit_timeout_count": 0,
+    "unit": "seconds"
+  },
+  "order_types": {
+    "entry": "market",
+    "exit": "market",
+    "emergency_exit": "market",
+    "force_entry": "market",
+    "force_exit": "market",
+    "stoploss": "market",
+    "stoploss_on_exchange": false,
+    "stoploss_on_exchange_interval": 60,
+    "stoploss_on_exchange_limit_ratio": 0.99
+  },
+  "order_time_in_force": {
+    "entry": "GTC",
+    "exit": "GTC"
+  },
+  // ~~ Buying ~~
+  "entry_pricing": {
+    "price_side": "other",
+    "use_order_book": false,
+    "order_book_top": 1,
+    "price_last_balance": 0.0,
+    "check_depth_of_market": {
+      "enabled": false,
+      "bids_to_ask_delta": 1
+    }
+  },
+  // ~~ Selling ~~
+  "exit_pricing": {
+    "price_side": "other",
+    "use_order_book": false,
+    "order_book_top": 1,
+    "price_last_balance": 0.0
+  },
+  // ~~ Freqtrade UI Server ~~
+  "api_server": {
+    "enabled": false,
+    "listen_ip_address": "127.0.0.1",
+    "listen_port": 8080,
+    "verbosity": "error",
+    "enable_openapi": false,
+    "CORS_origins": ["http://127.0.0.1:8080"]
+  },
+  // ~~ Webhook ~~
+  "webhook": {
+    "enabled": false,
+    "url": "",
+    "format": "json",
+    "timeout": 10,
+    "retries": 0,
+    "retry_delay": 0.1,
+    "allow_custom_messages": false,
+
+    "entry": {
+      "pair": "{pair}",
+      "message": "Entry order placed",
+      "rate": "{open_rate}",
+      "stake": "{stake_amount} {stake_currency}",
+      "tag": "{enter_tag}"
+    },
+
+    "entry_cancel": {
+      "pair": "{pair}",
+      "message": "Entry order cancelled",
+      "rate": "{current_rate}",
+      "stake": "{stake_amount} {stake_currency}",
+      "tag": "{enter_tag}"
+    },
+
+    "entry_fill": {
+      "pair": "{pair}",
+      "message": "Entry order filled",
+      "rate": "{open_rate}",
+      "amount": "{amount}",
+      "tag": "{enter_tag}"
+    },
+
+    "exit": {
+      "pair": "{pair}",
+      "message": "Exit order placed",
+      "rate": "{current_rate}",
+      "profit": "{profit_amount} {stake_currency}",
+      "profit_ratio": "{profit_ratio}",
+      "reason": "{exit_reason}"
+    },
+
+    "exit_cancel": {
+      "pair": "{pair}",
+      "message": "Exit order cancelled",
+      "rate": "{current_rate}",
+      "profit": "{profit_amount} {stake_currency}",
+      "profit_ratio": "{profit_ratio}",
+      "reason": "{exit_reason}"
+    },
+
+    "exit_fill": {
+      "pair": "{pair}",
+      "message": "Exit order filled",
+      "rate": "{close_rate}",
+      "profit": "{profit_amount} {stake_currency}",
+      "profit_ratio": "{profit_ratio}",
+      "reason": "{exit_reason}"
+    },
+
+    "status": {
+      "status": "Status: {status}"
+    }
+  },
+  // ~~ Data Type ~~
+  "dataformat_ohlcv": "feather",
+  "dataformat_trades": "feather",
+  // ~~ Data / RAM ~~
+  "reduce_df_footprint": false,
+  // ~~ State and Clocks ~~
+  "initial_state": "running",
+  "internals": {
+    "process_throttle_secs": 5,
+    "heartbeat_interval": 60,
+    "sd_notify": false
+  },
+  // ~~ Experimental ~~
+  "experimental": {
+    "block_bad_exchanges": true
+  }
+}

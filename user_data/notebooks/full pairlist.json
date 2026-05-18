@@ -1,0 +1,130 @@
+"pairlists": [
+  {
+    "method": "StaticPairList",
+    "allow_inactive": false
+  },
+
+  {
+    "method": "VolumePairList",
+    "number_assets": 20,
+    "sort_key": "quoteVolume",
+    "min_value": 0,
+    "max_value": 8000000,
+    "refresh_period": 1800,
+
+    // advanced candle-based volume mode:
+    "lookback_days": 7,
+    "lookback_timeframe": "1h",
+    "lookback_period": 72
+  },
+
+  {
+    "method": "PercentChangePairList",
+    "number_assets": 20,
+    "min_value": -10,
+    "max_value": 50,
+    "sort_direction": "desc",
+    "refresh_period": 1800,
+
+    // advanced candle-based percent-change mode:
+    "lookback_days": 1,
+    "lookback_timeframe": "1h",
+    "lookback_period": 72
+  },
+
+  {
+    "method": "ProducerPairList",
+    "number_assets": 20,
+    "producer_name": "default"
+  },
+
+  {
+    "method": "RemotePairList",
+    "mode": "whitelist",
+    "processing_mode": "filter",
+    "pairlist_url": "https://example.com/pairlist.json",
+    "number_assets": 20,
+    "refresh_period": 1800,
+    "keep_pairlist_on_failure": true,
+    "read_timeout": 60,
+    "bearer_token": "your-token",
+    "save_to_file": "user_data/pairlist_cache.json"
+  },
+
+  {
+    "method": "MarketCapPairList",
+    "number_assets": 20,
+    "max_rank": 250,
+    "refresh_period": 86400,
+    "mode": "whitelist",
+    "categories": []
+  },
+
+  {
+    "method": "AgeFilter",
+    "min_days_listed": 10,
+    "max_days_listed": null
+  },
+
+  {
+    "method": "DelistFilter",
+    "max_days_from_now": 0
+  },
+
+  {
+    "method": "FullTradesFilter"
+  },
+
+  {
+    "method": "OffsetFilter",
+    "offset": 10,
+    "number_assets": 20
+  },
+
+  {
+    "method": "PerformanceFilter",
+    "minutes": 1440,
+    "min_profit": 0.01
+  },
+
+  {
+    "method": "PrecisionFilter"
+  },
+
+  {
+    "method": "PriceFilter",
+    "min_price": 0.000001,
+    "max_price": 1000,
+    "max_value": 10,
+    "low_price_ratio": 0.01
+  },
+
+  {
+    "method": "ShuffleFilter",
+    "shuffle_frequency": "candle",
+    "seed": 42
+  },
+
+  {
+    "method": "SpreadFilter",
+    "max_spread_ratio": 0.005
+  },
+
+  {
+    "method": "RangeStabilityFilter",
+    "lookback_days": 10,
+    "min_rate_of_change": 0.01,
+    "max_rate_of_change": 0.99,
+    "refresh_period": 86400,
+    "sort_direction": "desc"
+  },
+
+  {
+    "method": "VolatilityFilter",
+    "lookback_days": 10,
+    "min_volatility": 0.05,
+    "max_volatility": 0.50,
+    "refresh_period": 86400,
+    "sort_direction": "asc"
+  }
+]

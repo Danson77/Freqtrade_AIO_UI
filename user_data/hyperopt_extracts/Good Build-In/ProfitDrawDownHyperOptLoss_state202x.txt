@@ -1,0 +1,83 @@
+# Hyperopt Extract Metadata
+strategy = GeneTrader_10
+time_window = TRAIN
+timerange = 20240101-20240701
+hyperopt_loss = ProfitDrawDownHyperOptLoss
+random_state = 202
+strategy_json_loaded = False
+raw_output_file = N:\Freqtrade\user_data\logs\hyperopt_raw_output\raw_GeneTrader_10_TRAIN_20240101-20240701_ProfitDrawDownHyperOptLoss_rs-202_2026-05-18_10-10-34.txt
+created_at = 2026-05-18_10-10-34
+
+Hyperopt results                                                                                   
+                ┏━━━━━━━━┳━━━━━━━━━┳━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━┳━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━┓                 
+                ┃ Best   ┃   Epoch ┃ Trades ┃   Win  Draw  Loss  Win% ┃ Avg profit ┃                  Profit ┃ Avg duration ┃  Objective ┃    Max Drawdown (Acct) ┃                 
+                ┡━━━━━━━━╇━━━━━━━━━╇━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━╇━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━┩                 
+                │ * Best │   1/300 │    105 │    61     0    44  58.1 │     -0.38% │  -3.917 USDT   (-3.92%) │      1:01:00 │    3.74904 │  4.662 USDT    (4.64%) │                 
+                │ * Best │   2/300 │  14843 │ 11072     0  3771  74.6 │      0.04% │  53.798 USDT   (53.80%) │      1:28:00 │  -47.10163 │ 23.615 USDT   (13.46%) │                 
+                │ * Best │   5/300 │   9908 │  7310     0  2598  73.8 │      0.17% │ 168.323 USDT  (168.32%) │      1:20:00 │ -151.76640 │ 31.908 USDT   (10.63%) │                 
+                │ Best   │  64/300 │   6060 │  4679     0  1381  77.2 │      0.28% │ 172.727 USDT  (172.73%) │      1:50:00 │ -164.44591 │ 13.124 USDT    (5.18%) │                 
+                │ Best   │  67/300 │  12293 │  9544     0  2749  77.6 │      0.16% │ 202.141 USDT  (202.14%) │      1:27:00 │ -189.58008 │ 21.551 USDT    (6.72%) │                 
+                │ Best   │ 106/300 │   5790 │  4390     0  1400  75.8 │      0.35% │ 202.489 USDT  (202.49%) │      1:55:00 │ -191.95672 │ 15.565 USDT    (5.62%) │                 
+                │ Best   │ 131/300 │   5444 │  4409     0  1035  81.0 │      0.46% │ 251.414 USDT  (251.41%) │      2:11:00 │ -237.98039 │ 18.357 USDT    (5.78%) │                 
+                │ Best   │ 195/300 │   5628 │  4467     0  1161  79.4 │      0.49% │ 279.640 USDT  (279.64%) │      2:46:00 │ -270.25508 │ 14.077 USDT    (3.63%) │                 
+                │ Best   │ 223/300 │   5770 │  4589     0  1181  79.5 │      0.53% │ 308.761 USDT  (308.76%) │      2:40:00 │ -297.73823 │ 16.125 USDT    (3.86%) │                 
+                │ Best   │ 264/300 │   4613 │  3644     0   969  79.0 │      0.72% │ 334.463 USDT  (334.46%) │      2:46:00 │ -324.65045 │ 13.846 USDT    (3.17%) │                 
+                └────────┴─────────┴────────┴─────────────────────────┴────────────┴─────────────────────────┴──────────────┴────────────┴────────────────────────┘                 
+Epochs ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 300/300 100% • 8:27:19 • 0:00:00
+2026-05-13 09:10:14,291 - freqtrade.optimize.hyperopt.hyperopt - INFO - 300 epochs saved to 'user_data/hyperopt_results/strategy_GeneTrader_10_2026-05-13_00-39-14.fthypt'.
+2026-05-13 09:10:14,429 - freqtrade.optimize.hyperopt_tools - INFO - Dumping parameters to /freqtrade/user_data/strategies/GeneTrade_10.json
+
+Best result:
+
+   264/300:   4613 trades. 3644/0/969 Wins/Draws/Losses. Avg profit   0.72%. Median profit   1.03%. Total profit 334.46342985 USDT ( 334.46%). Avg duration 2:46:00 min. Objective: -324.65045
+
+
+    # Buy parameters:
+    buy_params = {
+        "buy_cti_32": 0.401,
+        "buy_new_rsi": 44,
+        "buy_new_rsi_fast": 45,
+        "buy_new_sma15": 0.959,
+        "buy_rsi_32": 24,
+        "buy_rsi_fast_32": 59,
+        "buy_sma15_32": 0.967,
+    }
+
+    # Sell parameters:
+    sell_params = {
+        "pCurrentProfit": 0.182,
+        "pHSL": -0.194,
+        "pMinProfit": -0.044,
+        "pPF_1": 0.013,
+        "pPF_2": 0.062,
+        "pSL_1": 0.018,
+        "pSL_2": 0.06,
+        "sell_cci": 17,
+        "sell_fastx": 95,
+        "sell_loss_cci": 392,
+        "sell_loss_cci_profit": -0.079,
+        "stoploss_opt": -0.193,
+        "time_sell_10_7": 7,
+        "time_sell_4_3": 6,
+    }
+
+    # ROI parameters:  # value loaded from strategy
+    minimal_roi = {
+        "0": 1
+    }
+
+    # Stoploss parameters:
+    stoploss = -0.27  # value loaded from strategy
+
+    # Trailing stop parameters:
+    trailing_stop = False  # value loaded from strategy
+    trailing_stop_positive = 0.002  # value loaded from strategy
+    trailing_stop_positive_offset = 0.05  # value loaded from strategy
+    trailing_only_offset_is_reached = True  # value loaded from strategy
+    
+
+    # max_open_trades parameters:
+    max_open_trades = 5  # value loaded from strategy
+
+
+

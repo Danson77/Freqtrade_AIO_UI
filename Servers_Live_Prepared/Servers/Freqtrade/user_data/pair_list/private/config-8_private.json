@@ -1,0 +1,46 @@
+{
+  // ~~ Exchange Settings and limiting ~~
+  "exchange": {
+    "name": "kucoin",
+    "key": "",
+    "secret": "",
+    "password": "",
+    // ~~ Sandbox ~~
+    "sandbox": false,
+    "log_responses": false,
+    "outdated_offset": 5,
+    "markets_refresh_interval": 30,
+    // ~~ UID ~~
+    "uid": "",
+    "enable_ws": true,
+    "skip_open_order_update": false,
+    "unknown_fee_rate": 0.0008,
+    "only_from_ccxt": false,
+    // ~~ CCXT ~~
+    "ccxt_config": {
+      "enableRateLimit": true
+    },
+    "ccxt_sync_config": {
+      "enableRateLimit": true,
+      "rateLimit": 500
+    },
+    "ccxt_async_config": {
+      "enableRateLimit": true,
+      "rateLimit": 500
+    }
+  },
+  "fiat_display_currency": "GBP",
+  "coingecko": {
+    "api_key": "",
+    "is_demo": true
+  },
+  // ~~ Freqtrade UI Server ~~
+  // jwt_secret_key = openssl rand -hex 32
+  // ws_token = openssl rand -hex 24
+  "api_server": {
+    "jwt_secret_key": "",
+    "ws_token": "",
+    "username": "",
+    "password": ""
+  }
+}

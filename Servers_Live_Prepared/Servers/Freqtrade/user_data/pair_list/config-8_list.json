@@ -1,0 +1,84 @@
+{
+  "pairlists": [
+    {
+      "method": "VolumePairList",
+      "number_assets": 120,
+      "sort_key": "quoteVolume",
+      "min_value": 500000,
+      "refresh_period": 1800
+    },
+    {
+      "method": "FullTradesFilter"
+    },
+    {
+      "method": "AgeFilter",
+      "min_days_listed": 30
+    },
+    {
+      "method": "MarketCapPairList",
+      "number_assets": 100,
+      "max_rank": 250,
+      "refresh_period": 86400,
+      "mode": "whitelist",
+      "categories": []
+    },
+    {
+      "method": "PercentChangePairList",
+      "number_assets": 80,
+      "min_value": -20,
+      "max_value": 40,
+      "sort_direction": "desc",
+      "refresh_period": 1800
+    },
+    {
+      "method": "PriceFilter",
+      "min_price": 0.000001,
+      "max_value": 10,
+      "low_price_ratio": 0.01
+    },
+    {
+      "method": "SpreadFilter",
+      "max_spread_ratio": 0.004
+    },
+    {
+      "method": "RangeStabilityFilter",
+      "lookback_days": 10,
+      "min_rate_of_change": 0.02,
+      "max_rate_of_change": 0.9,
+      "refresh_period": 86400,
+      "sort_direction": "desc"
+    },
+    {
+      "method": "VolatilityFilter",
+      "lookback_days": 10,
+      "min_volatility": 0.02,
+      "max_volatility": 0.45,
+      "refresh_period": 86400,
+      "sort_direction": "asc"
+    }
+  ],
+  "exchange": {
+    "pair_whitelist": [".*/USDT"],
+    "pair_blacklist": [
+      // Exchange/platform tokens we do not want the bot trading
+      "^KCS/.*",
+      // Leveraged tokens / ETPs / synthetic products
+      ".*(2L|2S|3L|3S|5L|5S|BULL|BEAR|ETF)/.*",
+      // Specific UP/DOWN leveraged tokens only - avoids wrongly blocking JUP, SYRUP, SUP, etc.
+      "^(BTC|ETH|BNB|XRP|ADA|SOL|DOGE|DOT|LINK|AVAX|LTC|TRX|EOS|ETC|BCH)(UP|DOWN)/.*",
+      // Fiat-style base assets against USDT
+      "^(EUR|GBP|BRL|TRY|AUD|CAD|CHF|JPY|SGD|ZAR)/USDT$",
+      // Stablecoin / pegged / non-growth base assets against USDT
+      "^(USDC|BUSD|DAI|TUSD|FDUSD|USDP|USDD|USTC|PYUSD|USDE|USDS|RLUSD|USDJ|USDN|SUSD|AUSD|OUSD|CUSD|CUSDT|VAI|UST|PAXG|XAUT|USD1|USDG|XU3O8)/USDT$",
+      // Rebase / elastic-supply / weird mechanics
+      "^(AMPL|TIME)/.*",
+      // Hard block: dead, unsupported, delisting-risk, ultra-low quality, or severe liquidity traps
+      "^(BAX|BOBMEME|DREAMS|KPOL|NETVR|NLK|OTK|PIX|ZPAY)/.*",
+      // Block for our bot style: not always dead, but bad fit for unattended 1m/5m/1h rotation
+      "^(MPLX|SPA|UQC)/.*",
+      // CUSTOM - meme / political / decay coins we do not want in unattended rotation
+      "^(FARTCOIN|TRUMP|LUNC|PUMP|WLFI)/.*"
+      // Backtest Blacklist
+    ]
+  }
+}

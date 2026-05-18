@@ -1,0 +1,235 @@
+{
+  // ~~ Paths and Logging ~~
+  "bot_name": "PC-Hyperopt",
+  "user_data_dir": "user_data",
+  "logfile": "user_data/logs/hyperopt/freqtrade_hyperopt.log",
+  "add_config_files": [
+    "pair_list/test/hyperopt_list.json",
+    "pair_list/private/config-private.json"
+  ],
+  "db_url": "sqlite:///user_data/sqlite/hyperopt-trades_v3.sqlite",
+  // ~~ Strategy ~~
+  "strategy": "",
+  "strategy_path": "user_data/strategies/",
+  "recursive_strategy_search": false,
+  // ~~ Bot Parameters ~~
+  "max_open_trades": 5,
+  "force_entry_enable": false,
+  "cancel_open_orders_on_exit": false,
+  // ~~ Wallet Managment parameters ~~
+  "stake_currency": "USDT",
+  "trading_mode": "spot",
+  //"margin_mode": "",
+  // ~~ Dry-run ~~
+  "dry_run": true,
+  "dry_run_wallet": 100,
+  // ~~ Live Run ~~
+  "tradable_balance_ratio": 0.95,
+  //"available_capital": 100,
+  "stake_amount": 10,
+  "amount_reserve_percent": 0.05,
+  // ~~ Custom Price Safety ~~
+  "custom_price_max_distance_ratio": 0.02,
+  // ~~ Last Stake Amount Funtion ~~
+  "amend_last_stake_amount": true,
+  "last_stake_amount_min_ratio": 0.5,
+  // ~~ Timeout ~~
+  "ignore_buying_expired_candle_after": 120,
+  "disable_dataframe_checks": false,
+  // ~~ Buying ~~
+  "entry_pricing": {
+    "price_side": "other",
+    "use_order_book": false,
+    "order_book_top": 1,
+    "price_last_balance": 0.0,
+    "check_depth_of_market": {
+      "enabled": false,
+      "bids_to_ask_delta": 1
+    }
+  },
+  // ~~ Selling ~~
+  "exit_pricing": {
+    "price_side": "other",
+    "use_order_book": false,
+    "order_book_top": 1,
+    "price_last_balance": 0.0
+  },
+  // ~~ Freqtrade UI Server ~~
+  "api_server": {
+    "enabled": false,
+    "listen_ip_address": "127.0.0.1",
+    "listen_port": 8081,
+    "verbosity": "error",
+    "enable_openapi": false,
+    "CORS_origins": ["http://127.0.0.1:8081"]
+  },
+  // ~~ Data Type ~~
+  "dataformat_ohlcv": "feather",
+  "dataformat_trades": "feather",
+  // ~~ Data / RAM ~~
+  "reduce_df_footprint": false,
+  // ~~ State and Clocks ~~
+  "initial_state": "running",
+  "internals": {
+    "process_throttle_secs": 5,
+    "heartbeat_interval": 60,
+    "sd_notify": false
+  },
+  // ~~ Experimental ~~
+  "experimental": {
+    "block_bad_exchanges": true
+  }
+  // ~~ Freqtrade AI ~~
+  //"freqai": {
+  //  // Main FreqAI switch
+  //  "enabled": false,
+  //  // Required / core model windowing
+  //  "identifier": "RL_",
+  //  "train_period_days": 15,
+  //  "backtest_period_days": 0.25,
+  //  // Live / dry retraining behaviour
+  //  "live_retrain_hours": 6,
+  //  "expiration_hours": 0,
+  //  "purge_old_models": 2,
+  //  "save_backtest_models": false,
+  //  "fit_live_predictions_candles": 300,
+  //  "continual_learning": false,
+  //  // Diagnostics / performance
+  //  "write_metrics_to_disk": false,
+  //  "data_kitchen_thread_count": 6,
+  //  "activate_tensorboard": true,
+  //  "wait_for_training_iteration_on_reload": true,
+  //  // Extra FreqAI options
+  //  "keras": false,
+  //  "conv_width": 2,
+  //  "override_exchange_check": false,
+  //  // Feature engineering parameters
+  //  "feature_parameters": {
+  //    // Extra timeframes used for expanded features.
+  //    // Make sure you download data for every timeframe listed here.
+  //    "include_timeframes": ["15m", "1h"],
+  //    // Correlated pairs used as extra feature sources.
+  //    // For spot use "BTC/USDT". For futures it may be "BTC/USDT:USDT".
+  //    "include_corr_pairlist": ["BTC/USDT", "ETH/USDT"],
+  //    // Future candle horizon used by set_freqai_targets().
+  //    "label_period_candles": 20,
+  //    // Adds lagged historical features.
+  //    // Example: 2 means current features + previous 2 shifted versions.
+  //    "include_shifted_candles": 2,
+  //    // Indicator periods passed into feature_engineering_expand_all().
+  //    "indicator_periods_candles": [10, 20],
+  //    // Recency weighting. Lower means older data gets less weight.
+  //    "weight_factor": 0.9,
+  //    // Dimensionality reduction.
+  //    "principal_component_analysis": false,
+  //    // Feature importance HTML plots.
+  //    // 0 = disabled.
+  //    "plot_feature_importances": 0,
+  //    // Dissimilarity Index outlier detection.
+  //    // 0 disables it. >0 enables it.
+  //    "DI_threshold": 0.9,
+  //    // SVM outlier removal.
+  //    "use_SVM_to_remove_outliers": true,
+  //    "svm_params": {
+  //      "shuffle": false,
+  //      "nu": 0.05
+  //    },
+  //    // DBSCAN outlier removal.
+  //    // Heavy and can remove too much data if tuned badly.
+  //    "use_DBSCAN_to_remove_outliers": false,
+  //    // Noise injection to reduce overfit.
+  //    // Keep small because FreqAI normalizes features roughly into -1 to 1.
+  //    "noise_standard_deviation": 0,
+  //    // Safety guard: if too many points are marked outliers, ignore outlier removal.
+  //    "outlier_protection_percentage": 30,
+  //    // Advanced split behaviour.
+  //    "reverse_train_test_order": false,
+  //    "shuffle_after_split": false,
+  //    // Cuts candles from beginning/end of training after indicators are made.
+  //    "buffer_train_data_candles": 0
+  //    // Deprecated / do not use:
+  //    // "indicator_max_period_candles": 20
+  //    // Replaced by strategy startup_candle_count.
+  //  },
+  //  // Train / test split parameters
+  //  "data_split_parameters": {
+  //    // For RL you normally use 0.
+  //    // For LightGBM/XGBoost/PyTorch supervised models, use 0.2-0.33.
+  //    "test_size": 0,
+  //    // Keep false for time-series unless you know why you need random order.
+  //    "shuffle": false,
+  //    // Reproducibility.
+  //    "random_state": 1
+  //    // Optional sklearn train_test_split parameters:
+  //    // "train_size": null,
+  //    // "stratify": null
+  //  },
+  //  // Reinforcement Learning config
+  //  // Used when running an RL freqaimodel.
+  //  "rl_config": {
+  //    "train_cycles": 25,
+  //    "max_trade_duration_candles": 300,
+  //    // Your current value is strict.
+  //    // 0.02 means max 2% training drawdown.
+  //    "max_training_drawdown_pct": 0.02,
+  //    "cpu_count": 8,
+  //    "model_type": "PPO",
+  //    "policy_type": "MlpPolicy",
+  //    // Adds state variables like trade duration/current profit/position.
+  //    // Dry/live only; FreqAI disables this for backtesting.
+  //    "add_state_info": false,
+  //    // PPO network architecture.
+  //    "net_arch": [128, 128],
+  //    // Reduces overfit by starting episodes from random points.
+  //    "randomize_starting_position": false,
+  //    // Removes normalized OHLC from agent feature set.
+  //    "drop_ohlc_from_features": false,
+  //    // Training progress bar.
+  //    "progress_bar": false,
+  //    // Custom values used inside calculate_reward().
+  //    "model_reward_parameters": {
+  //      "rr": 1,
+  //      "profit_aim": 0.025
+  //    }
+  //  },
+  //  // Model training parameters
+  //  // IMPORTANT:
+  //  // This dictionary changes depending on the model you run with --freqaimodel.
+  //  // Current block is PPO/RL-friendly.
+  //  "model_training_parameters": {
+  //    "learning_rate": 0.0003,
+  //    "n_steps": 2048,
+  //    "batch_size": 64,
+  //    "n_epochs": 10,
+  //    "gamma": 0.99,
+  //    "gae_lambda": 0.95,
+  //    "clip_range": 0.2,
+  //    "ent_coef": 0.0,
+  //    "vf_coef": 0.5,
+  //    "max_grad_norm": 0.5,
+  //    "seed": 1,
+  //    "verbose": 0
+  //    // For LightGBM / XGBoost style models, use something like:
+  //    // "n_estimators": 800,
+  //    // "learning_rate": 0.02,
+  //    // "n_jobs": 8,
+  //    // "random_state": 1
+  //    //
+  //    // For CatBoost style models, use something like:
+  //    // "iterations": 800,
+  //    // "learning_rate": 0.02,
+  //    // "depth": 6,
+  //    // "thread_count": 8,
+  //    // "task_type": "CPU"
+  //    //
+  //    // For PyTorch FreqAI models, use something like:
+  //    // "learning_rate": 0.0003,
+  //    // "model_kwargs": {},
+  //    // "trainer_kwargs": {
+  //    //   "n_epochs": 10,
+  //    //   "batch_size": 64,
+  //    //   "early_stopping_patience": 0
+  //    // }
+  //  }
+  //},
+}

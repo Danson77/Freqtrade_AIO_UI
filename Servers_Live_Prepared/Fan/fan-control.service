@@ -1,0 +1,9 @@
+[Unit]
+Description=Fan Control Service
+After=multi-user.target
+
+[Service]
+ExecStart=/usr/bin/python3 /home/danson/Fan/fan_ctrl.py
+
+[Install]
+WantedBy=multi-user.target

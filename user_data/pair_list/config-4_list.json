@@ -1,0 +1,27 @@
+{
+  "pairlists": [{ "method": "StaticPairList" }],
+  "exchange": {
+    "pair_whitelist": [".*/USDT"],
+    "pair_blacklist": [
+      // Exchange/platform tokens we do not want the bot trading
+      "^KCS/.*",
+      // Leveraged tokens / ETPs / synthetic products
+      ".*(2L|2S|3L|3S|5L|5S|BULL|BEAR|ETF)/.*",
+      // Specific UP/DOWN leveraged tokens only - avoids wrongly blocking JUP, SYRUP, SUP, etc.
+      "^(BTC|ETH|BNB|XRP|ADA|SOL|DOGE|DOT|LINK|AVAX|LTC|TRX|EOS|ETC|BCH)(UP|DOWN)/.*",
+      // Fiat-style base assets against USDT
+      "^(EUR|GBP|BRL|TRY|AUD|CAD|CHF|JPY|SGD|ZAR)/USDT$",
+      // Stablecoin / pegged / non-growth base assets against USDT
+      "^(USDC|BUSD|DAI|TUSD|FDUSD|USDP|USDD|USTC|PYUSD|USDE|USDS|RLUSD|USDJ|USDN|SUSD|AUSD|OUSD|CUSD|CUSDT|VAI|UST|PAXG|XAUT|USD1|USDG|XU3O8)/USDT$",
+      // Rebase / elastic-supply / weird mechanics
+      "^(AMPL|TIME)/.*",
+      // Hard block: dead, unsupported, delisting-risk, ultra-low quality, or severe liquidity traps
+      "^(BAX|BOBMEME|DREAMS|KPOL|NETVR|NLK|OTK|PIX|ZPAY)/.*",
+      // Block for our bot style: not always dead, but bad fit for unattended 1m/5m/1h rotation
+      "^(MPLX|SPA|UQC)/.*",
+      // CUSTOM - meme / political / decay coins we do not want in unattended rotation
+      "^(FARTCOIN|TRUMP|LUNC|PUMP|WLFI)/.*"
+      // Backtest Blacklist
+    ]
+  }
+}

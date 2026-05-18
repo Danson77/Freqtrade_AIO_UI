@@ -1,0 +1,30 @@
+{
+  // ~~ Paths and Logging ~~
+  "bot_name": "PC-Data_Download",
+  "user_data_dir": "user_data",
+  "logfile": "user_data/logs/data_download/freqtrade_data_download.log",
+  "add_config_files": [
+    "pair_list/test/data_download_list.json",
+    "pair_list/private/config-private.json"
+  ],
+  "db_url": "sqlite:///user_data/sqlite/data-download-trades_v3.sqlite",
+  // ~~ Wallet Managment parameters ~~
+  "stake_currency": "USDT",
+  "trading_mode": "spot",
+  // ~~ Data Type ~~
+  "dataformat_ohlcv": "feather",
+  "dataformat_trades": "feather",
+  // ~~ Data / RAM ~~
+  "reduce_df_footprint": false,
+  // ~~ State and Clocks ~~
+  "initial_state": "running",
+  "internals": {
+    "process_throttle_secs": 5,
+    "heartbeat_interval": 60,
+    "sd_notify": false
+  },
+  // ~~ Experimental ~~
+  "experimental": {
+    "block_bad_exchanges": true
+  }
+}
