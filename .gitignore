@@ -14,17 +14,23 @@ __pycache__/
 *.db
 *.log
 
+user_data/analysis_extracts/*
+!user_data/analysis_extracts/.gitkeep
+
 user_data/logs/*
 !user_data/logs/.gitkeep
+
+user_data/plot/*
+!user_data/plot/.gitkeep
+
+user_data/data/data_audit/*
+!user_data/data/data_audit/.gitkeep
 
 user_data/backtest_results/*
 !user_data/backtest_results/.gitkeep
 
 user_data/hyperopt_results/*
 !user_data/hyperopt_results/.gitkeep
-
-user_data/plot/*
-!user_data/plot/.gitkeep
 
 # AIO local job/runtime state
 user_data/tools/Main_Py/Freqtrade_AIO_UI/jobs/
