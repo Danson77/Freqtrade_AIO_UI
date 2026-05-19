@@ -30,23 +30,25 @@ The goal is simple:
 
 > Select options → generate the correct Docker command → run the job → track/open the result.
 
+Current AIO builds also focus on keeping job history clean: one registry JSON, temporary CMD launchers only while active, no per-job JSON sidecars, and right-click job actions.
+
 ---
 
 ## AIO UI Features
 
-| Feature                   | Description                                                                                                          |
-| ------------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| **Dark UI**               | Compact dark interface with tabs and scrollbars for smaller screens.                                                 |
-| **Backtest**              | Builds and runs `freqtrade backtesting` commands.                                                                    |
-| **Hyperopt**              | Builds and runs `freqtrade hyperopt` commands with spaces, workers, epochs, loss function, and random-state options. |
-| **Analysis**              | Builds and runs `lookahead-analysis` and `recursive-analysis`.                                                       |
-| **Data**                  | Builds and runs `download-data`, `list-data`, and timerange listing commands.                                        |
-| **Paths**                 | Lets output folders be configured from the UI.                                                                       |
-| **Jobs**                  | Tracks running/history jobs, follows logs, refreshes status, and opens related output files.                         |
-| **Saved defaults**        | Saves common values so the same options do not need to be reselected every run.                                      |
-| **Detached jobs**         | Docker/CMD jobs can continue after the main UI is closed.                                                            |
-| **Portable project root** | The Freqtrade project folder can be changed and saved.                                                               |
-| **Clean state JSON**      | Settings are saved compactly without storing large generated pairlists.                                              |
+| Feature                   | Description                                                                                                           |
+| ------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| **Dark UI**               | Compact dark interface with tabs and scrollbars for smaller screens.                                                  |
+| **Backtest**              | Builds and runs `freqtrade backtesting` commands.                                                                     |
+| **Hyperopt**              | Builds and runs `freqtrade hyperopt` commands with spaces, workers, epochs, loss function, and random-state options.  |
+| **Analysis**              | Builds and runs `lookahead-analysis` and `recursive-analysis`.                                                        |
+| **Data**                  | Builds and runs `download-data`, `list-data`, and timerange listing commands.                                         |
+| **Paths**                 | Lets output folders be configured from the UI.                                                                        |
+| **Jobs**                  | Colored running/history list with right-click actions for logs, results, raw output, and individual history deletion. |
+| **Saved defaults**        | Saves common values so the same options do not need to be reselected every run.                                       |
+| **Detached jobs**         | Docker/CMD jobs can continue after the main UI is closed.                                                             |
+| **Portable project root** | The Freqtrade project folder can be changed and saved.                                                                |
+| **Clean state JSON**      | Settings are saved compactly without storing large generated pairlists.                                               |
 
 ---
 
@@ -59,7 +61,7 @@ The goal is simple:
 | **Analysis** | Lookahead/recursive analysis with config, recommended, or manual pair modes.                        |
 | **Data**     | Download/list market data, validate timeframes, and open audit files.                               |
 | **Paths**    | Configure output folders for reports, raw logs, extracts, and audits.                               |
-| **Jobs**     | Track running/history jobs and open related logs/results.                                           |
+| **Jobs**     | Colored job history, right-click actions, refresh, folders, logs, and safe history cleanup.         |
 
 ---
 
@@ -101,6 +103,64 @@ path settings
 Generated pairlists are not saved unless the pair source is manual. This keeps the state file smaller and avoids repeated giant `analysis_pairs` entries.
 
 Job history is kept in one compact registry file instead of creating one JSON file per job.
+
+Temporary job launcher files are not kept as history. A `run_*.cmd` file may exist while a visible/minimized job is active, but it is cleaned after the job finishes. Old per-job sidecar files such as `job_*.json` and `job_cmd_*.json` are obsolete and should not be used as durable history.
+
+---
+
+## AIO Jobs Tab
+
+The Jobs tab is the control center for detached runs. Closing the main UI does **not** stop already launched Docker/CMD jobs. Reopen the UI and use the Jobs tab to refresh status or follow Docker logs.
+
+### Job colours
+
+| Job state / type               | Display behaviour                      |
+| ------------------------------ | -------------------------------------- |
+| `FAILED`, `ERROR`, `CANCELLED` | Red highlight, regardless of job type. |
+| `RUNNING`                      | Running highlight.                     |
+| `CREATED`, `STARTED`           | Starting/pending highlight.            |
+| `DONE`                         | Completed highlight.                   |
+| Hyperopt jobs                  | Category colour/purple-style emphasis. |
+| Backtest jobs                  | Category colour/green-style emphasis.  |
+| Analysis jobs                  | Category colour/blue-style emphasis.   |
+| Data jobs                      | Category colour/orange-style emphasis. |
+
+### Right-click job menu
+
+Right-clicking a job row selects that job and opens the action menu. This avoids selecting a row first and then pressing a separate button.
+
+| Right-click action          | Behaviour                                                                 |
+| --------------------------- | ------------------------------------------------------------------------- |
+| **Follow logs**             | Opens `docker logs -f <container>` for the selected job when available.   |
+| **Open result**             | Opens the exact result/extract/audit file recorded for that finished job. |
+| **Open raw log**            | Opens the raw log recorded for that selected job.                         |
+| **Delete selected history** | Removes only that finished/history row from the job registry.             |
+| **Refresh job status**      | Re-checks Docker status and updates the list.                             |
+| **Open jobs folder**        | Opens the AIO jobs folder.                                                |
+
+`Open result` is intentionally disabled while a job is still running or when no exact result file has been recorded. The UI does not guess random latest files for a selected job because that can open the wrong run.
+
+### Jobs tab buttons
+
+The bottom Jobs buttons are kept compact:
+
+| Button                 | Purpose                                                       |
+| ---------------------- | ------------------------------------------------------------- |
+| **Refresh job status** | Re-check Docker and registry status.                          |
+| **Open jobs folder**   | Opens `user_data/tools/Main_Py/Freqtrade_AIO_UI/jobs`.        |
+| **Open logs**          | Opens the main logs folder.                                   |
+| **Clear history**      | Clears finished/history rows only; running jobs stay visible. |
+
+### Job cleanup rules
+
+| File / history item              | Behaviour                                                      |
+| -------------------------------- | -------------------------------------------------------------- |
+| `Freqtrade_AIO_UI_jobs.json`     | Main and only persistent job registry.                         |
+| `run_*.cmd`                      | Temporary launcher for active visible/minimized jobs only.     |
+| `job_*.json`, `job_cmd_*.json`   | Obsolete sidecar files; cleaned by newer builds.               |
+| `Clear history`                  | Removes finished/history rows but keeps running/starting jobs. |
+| `Delete selected history`        | Removes only one selected non-active row.                      |
+| Reports/extracts/audits/raw logs | Not deleted by history cleanup.                                |
 
 ---
 
@@ -651,36 +711,40 @@ Suggested:
 
 ## Current Status
 
-| Area                                             | Status     |
-| ------------------------------------------------ | ---------- |
-| Windows AIO UI Tool                              | Main focus |
-| Backtest / Hyperopt / Analysis / Data UI helpers | Included   |
-| Recursive per-pair analysis mode                 | Included   |
-| Detached job tracking and result-file opening    | Included   |
-| Raspberry Pi OS / Debian-based setup             | Included   |
-| Automatic Linux user/home detection              | Included   |
-| Auto-detected LAN subnet firewall setup          | Included   |
-| Freqtrade install automation                     | Included   |
-| Multi-instance systemd services                  | Included   |
-| Tailscale remote access                          | Included   |
-| UFW firewall hardening                           | Included   |
-| Netdata monitoring and streaming                 | Included   |
-| ZRAM + fallback swapfile                         | Included   |
-| Software fan control                             | Included   |
-| Weekly cleanup/update timers                     | Included   |
-| Freqtrade pre-config organisation                | Included   |
+| Area                                              | Status     |
+| ------------------------------------------------- | ---------- |
+| Windows AIO UI Tool                               | Main focus |
+| Backtest / Hyperopt / Analysis / Data UI helpers  | Included   |
+| Recursive per-pair analysis mode                  | Included   |
+| Detached job tracking and result-file opening     | Included   |
+| Colored Jobs tab rows and right-click actions     | Included   |
+| Single job registry without per-job JSON sidecars | Included   |
+| Safe clear-history / delete-selected history      | Included   |
+| Raspberry Pi OS / Debian-based setup              | Included   |
+| Automatic Linux user/home detection               | Included   |
+| Auto-detected LAN subnet firewall setup           | Included   |
+| Freqtrade install automation                      | Included   |
+| Multi-instance systemd services                   | Included   |
+| Tailscale remote access                           | Included   |
+| UFW firewall hardening                            | Included   |
+| Netdata monitoring and streaming                  | Included   |
+| ZRAM + fallback swapfile                          | Included   |
+| Software fan control                              | Included   |
+| Weekly cleanup/update timers                      | Included   |
+| Freqtrade pre-config organisation                 | Included   |
 
 Possible future improvements:
 
-| Improvement                   | Reason                                  |
-| ----------------------------- | --------------------------------------- |
-| Interactive server setup menu | Select only needed Linux components.    |
-| Server dry-run mode           | Preview system changes before applying. |
-| Config validation             | Catch missing files before install.     |
-| Better Pi model detection     | Safer fan/ZRAM defaults.                |
-| Automatic backups             | Safer before changing system files.     |
-| Cleaner uninstall mode        | Remove services/configs if needed.      |
-| More AIO UI report viewers    | Faster browsing of generated output.    |
+| Improvement                   | Reason                                       |
+| ----------------------------- | -------------------------------------------- |
+| Interactive server setup menu | Select only needed Linux components.         |
+| Server dry-run mode           | Preview system changes before applying.      |
+| Config validation             | Catch missing files before install.          |
+| Better Pi model detection     | Safer fan/ZRAM defaults.                     |
+| Automatic backups             | Safer before changing system files.          |
+| Cleaner uninstall mode        | Remove services/configs if needed.           |
+| More AIO UI report viewers    | Faster browsing of generated output.         |
+| Built-in result preview pane  | View reports without opening external files. |
 
 ---
 
@@ -720,7 +784,7 @@ Use Tailscale/VPN or strict firewall rules for Freqtrade UI/API access.
 
 This repository is mainly a **Freqtrade Windows AIO UI + automation toolkit**.
 
-The Windows AIO UI handles repeated Docker-based Freqtrade work: Backtest, Hyperopt, Analysis, Data download/listing, recursive per-pair analysis, job tracking, saved defaults, output paths, and related report opening.
+The Windows AIO UI handles repeated Docker-based Freqtrade work: Backtest, Hyperopt, Analysis, Data download/listing, recursive per-pair analysis, colored detached job tracking, right-click job actions, saved defaults, output paths, and related report opening.
 
 The Raspberry Pi OS / Debian-based scripts prepare live bot machines with Freqtrade services, automatic Linux user detection, auto-detected LAN firewall rules, Tailscale access, Netdata monitoring, ZRAM, maintenance timers, and software-controlled fan support.
 
