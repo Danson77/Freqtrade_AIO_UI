@@ -2,7 +2,7 @@
 setlocal EnableExtensions EnableDelayedExpansion
 
 REM ====================================================================================
-REM Freqtrade AIO UI v30 - job result safety + clear-history fix
+REM Freqtrade AIO UI v31 - colored jobs + right-click context menu
 REM - Starts in the folder where this BAT lives.
 REM - Does NOT require Python 3.10 specifically.
 REM - Tries installed Python versions: 3.14, 3.13, 3.12, 3.11, 3.10, then python/python3.

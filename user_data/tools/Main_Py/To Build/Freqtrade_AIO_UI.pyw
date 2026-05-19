@@ -2,7 +2,7 @@
 """
 Freqtrade All-In-One UI Tool
 
-Version: v30 job result safety + clear-history fix
+Version: v31 colored jobs + right-click job actions
 
 Tabs:
 - Backtest
@@ -345,6 +345,7 @@ ANALYSIS_PAIR_SOURCE_VALUES = [
     "MANUAL",
 ]
 ANALYSIS_RUN_MODE_VALUES = [
+    "single_command",
     "cmd_per_pair_parallel",
     "cmd_per_pair_sequential",
 ]
@@ -2502,11 +2503,7 @@ class FreqtradeAllInOneUI:
 
         is_recursive = str(self.vars["analysis_mode"].get() or "").strip() == "recursive-analysis"
         pair_source = str(self.vars.get("analysis_pair_source", tk.StringVar(value="MANUAL")).get() or "MANUAL").strip().upper()
-        run_mode = str(self.vars.get("analysis_recursive_run_mode", tk.StringVar(value="cmd_per_pair_parallel")).get() or "cmd_per_pair_parallel").strip()
-        if run_mode not in ANALYSIS_RUN_MODE_VALUES:
-            run_mode = "cmd_per_pair_parallel"
-            if "analysis_recursive_run_mode" in self.vars:
-                self.vars["analysis_recursive_run_mode"].set(run_mode)
+        run_mode = str(self.vars.get("analysis_recursive_run_mode", tk.StringVar(value="single_command")).get() or "single_command").strip()
 
         # Recursive-only dropdowns. They are hard-disabled in lookahead mode.
         for key in ("analysis_pair_source", "analysis_recursive_run_mode", "analysis_display_mode"):
@@ -2889,7 +2886,7 @@ class FreqtradeAllInOneUI:
         self.field_card(recursive, rrow, 1, "Pairs", self.entry(recursive, "analysis_pairs", "BTC/USDT ETH/USDT SOL/USDT XRP/USDT", width=34), "Resolved pair list used by recursive-analysis.\nWritable only when Pair source = MANUAL.")
         rrow += 1
         self.field_card(recursive, rrow, 0, "Startup candles", self.entry(recursive, "analysis_startup_candles", "199 399 499 999 1999", width=34), "Auto-detected from strategy startup_candle_count. Example: 240 -> 240 300 480 720 1200.")
-        self.field_card(recursive, rrow, 1, "Recursive run mode", self.combo(recursive, "analysis_recursive_run_mode", ANALYSIS_RUN_MODE_VALUES, "cmd_per_pair_parallel", width=30, readonly=True), "cmd_per_pair_parallel = one command per pair with slot-refill workers; cmd_per_pair_sequential = one pair at a time. Single-command recursive mode is disabled because it fails with multi-pair recursive analysis.")
+        self.field_card(recursive, rrow, 1, "Recursive run mode", self.combo(recursive, "analysis_recursive_run_mode", ANALYSIS_RUN_MODE_VALUES, "single_command", width=30, readonly=True), "single_command = one Freqtrade command with all pairs; cmd_per_pair_parallel = slot-refill worker; cmd_per_pair_sequential = one pair at a time.")
         rrow += 1
         self.field_card(recursive, rrow, 0, "Recursive display mode", self.combo(recursive, "analysis_display_mode", ANALYSIS_DISPLAY_MODE_VALUES, "minimized_cmd", width=30, readonly=True), "silent = no CMD window; minimized_cmd = open minimized controller; visible_cmd = show controller window.")
         self.field_card(recursive, rrow, 1, "Max parallel", self.entry(recursive, "analysis_max_parallel", "5", width=12), "Used only by cmd_per_pair_parallel. Keeps only this many recursive pair jobs running.")
@@ -2994,7 +2991,7 @@ class FreqtradeAllInOneUI:
         ttk.Label(header, text="Running + job history", style="Header.TLabel").grid(row=0, column=0, sticky="w")
         ttk.Label(
             header,
-            text="Closing the main UI does not stop CMD/Docker jobs. Use Refresh / Follow logs to re-check them later.",
+            text="Right-click a job for actions. Failed jobs are red; running/created are highlighted; categories use their own colors.",
             style="Detail.TLabel",
         ).grid(row=1, column=0, sticky="w", pady=(3, 0))
 
@@ -3009,6 +3006,7 @@ class FreqtradeAllInOneUI:
             highlightthickness=1,
             highlightbackground=DARK_BORDER,
             highlightcolor=DARK_ACCENT,
+            activestyle="dotbox",
         )
         self.job_listbox.grid(row=1, column=0, sticky="nsew")
 
@@ -3024,11 +3022,29 @@ class FreqtradeAllInOneUI:
         self.jobs_open_result_button = ttk.Button(buttons, text="Open selected result", command=self.open_selected_job_related_file)
         self.jobs_open_result_button.pack(side="left", padx=4)
 
+        self.jobs_delete_selected_button = ttk.Button(buttons, text="Delete selected history", command=self.delete_selected_job_history)
+        self.jobs_delete_selected_button.pack(side="left", padx=4)
+
         ttk.Button(buttons, text="Open jobs folder", command=lambda: self.open_folder(project_path(UI_JOBS_FOLDER_REL))).pack(side="left", padx=4)
         ttk.Button(buttons, text="Open logs", command=lambda: self.open_folder(project_path(RAW_OUTPUT_FOLDER_REL))).pack(side="left", padx=4)
         ttk.Button(buttons, text="Clear history", command=self.clear_jobs).pack(side="left", padx=4)
 
+        self.job_context_menu = tk.Menu(
+            self.root,
+            tearoff=0,
+            background=DARK_PANEL_2,
+            foreground=DARK_TEXT,
+            activebackground=DARK_ACCENT,
+            activeforeground="#ffffff",
+            borderwidth=1,
+            relief="solid",
+        )
+
         self.job_listbox.bind("<<ListboxSelect>>", lambda _event: self.update_job_action_buttons())
+        self.job_listbox.bind("<Button-3>", self.show_job_context_menu)
+        self.job_listbox.bind("<Button-2>", self.show_job_context_menu)
+        self.job_listbox.bind("<Delete>", lambda _event: self.delete_selected_job_history())
+        self.job_listbox.bind("<Double-Button-1>", lambda _event: self.open_selected_job_related_file())
         self.update_job_action_buttons()
 
     def collect_output_paths(self) -> Dict[str, str]:
@@ -3148,47 +3164,16 @@ class FreqtradeAllInOneUI:
         builders: Dict[str, Callable[[], Tuple[List[str], str]]] = {
             "backtest": lambda: build_backtest_command(self.collect_backtest()),
             "hyperopt": lambda: build_hyperopt_command(self.collect_hyperopt()),
+            "analysis": lambda: build_analysis_command(self.collect_analysis()),
             "data": lambda: build_data_command(self.collect_data()),
         }
-        for key in ("backtest", "hyperopt", "analysis", "data"):
+        for key, builder in builders.items():
             box = self.previews.get(key)
             if not box:
                 continue
             try:
-                if key == "analysis":
-                    settings = self.collect_analysis()
-                    if settings.get("analysis_mode") == "recursive-analysis":
-                        run_mode = str(settings.get("recursive_run_mode", "cmd_per_pair_parallel"))
-                        if run_mode not in ANALYSIS_RUN_MODE_VALUES:
-                            run_mode = "cmd_per_pair_parallel"
-
-                        pairs = split_tokens(settings.get("pairs", ""))
-                        if not pairs and str(settings.get("pair_source", "")).upper() == "RECOMMENDED":
-                            pairs = RECOMMENDED_RECURSIVE_PAIRS.copy()
-
-                        max_parallel = 1 if run_mode == "cmd_per_pair_sequential" else parse_positive_int(settings.get("max_parallel", "5"), 5)
-                        max_parallel = max(1, min(max_parallel, len(pairs))) if pairs else max_parallel
-
-                        if pairs:
-                            sample_cmd, _sample_container = build_analysis_command(settings, pair_override=pairs[0])
-                            text = (
-                                f"Recursive batch mode: {run_mode}\n"
-                                f"Pairs: {len(pairs)}\n"
-                                f"Max parallel: {max_parallel}\n\n"
-                                f"First generated pair command:\n{command_to_string(sample_cmd)}"
-                            )
-                        else:
-                            text = (
-                                f"Recursive batch mode: {run_mode}\n"
-                                "Pairs: none loaded yet\n\n"
-                                "Use Load pairs from source or MANUAL pair entry before running."
-                            )
-                    else:
-                        cmd, _container = build_analysis_command(settings)
-                        text = command_to_string(cmd)
-                else:
-                    cmd, _container = builders[key]()
-                    text = command_to_string(cmd)
+                cmd, _container = builder()
+                text = command_to_string(cmd)
             except Exception as e:
                 text = f"Preview error: {e}"
             box.configure(state="normal")
@@ -3369,9 +3354,7 @@ class FreqtradeAllInOneUI:
             messagebox.showinfo("Pairs loaded", f"Loaded {len(pairs)} pair(s) from {settings.get('pair_source')}.")
 
     def launch_analysis_batch(self, settings: Dict[str, Any], pairs: List[str]) -> None:
-        run_mode = str(settings.get("recursive_run_mode", "cmd_per_pair_parallel"))
-        if run_mode not in ANALYSIS_RUN_MODE_VALUES:
-            run_mode = "cmd_per_pair_parallel"
+        run_mode = str(settings.get("recursive_run_mode", "single_command"))
         max_parallel = 1 if run_mode == "cmd_per_pair_sequential" else parse_positive_int(settings.get("max_parallel", "5"), 5)
         max_parallel = max(1, min(max_parallel, len(pairs))) if pairs else 1
         timerange = timerange_from_vars(settings["window"], settings["custom_timerange"])
@@ -3434,12 +3417,10 @@ class FreqtradeAllInOneUI:
             settings = dict(settings)
             settings["pairs"] = " ".join(pairs)
             self.vars["analysis_pairs"].set(settings["pairs"])
-            run_mode = str(settings.get("recursive_run_mode", "cmd_per_pair_parallel"))
-            if run_mode not in ANALYSIS_RUN_MODE_VALUES:
-                run_mode = "cmd_per_pair_parallel"
-            settings["recursive_run_mode"] = run_mode
-            self.launch_analysis_batch(settings, pairs)
-            return
+            run_mode = str(settings.get("recursive_run_mode", "single_command"))
+            if run_mode in {"cmd_per_pair_parallel", "cmd_per_pair_sequential"}:
+                self.launch_analysis_batch(settings, pairs)
+                return
 
         cmd, container = build_analysis_command(settings)
         metadata = {"title": f"{settings['analysis_mode']} {settings['strategy']} {timerange}", "analysis_mode": settings["analysis_mode"], "config": settings["config"], "strategy": settings["strategy"], "timerange": timerange, "container_name": container, "output_paths": self.collect_output_paths()}
@@ -4055,14 +4036,64 @@ class FreqtradeAllInOneUI:
         """True only when this exact job record has a concrete result/log path.
 
         This intentionally does not scan folders for "latest" files. Folder scans
-        caused the wrong result to open, for example an unrelated RECv20_state909
-        extract while a different Hyperopt job was still running.
+        caused wrong-result opens when another run was still active.
         """
         for key in ("related_file", "extract_file", "raw_file"):
             path = str(job.get(key, "")).strip()
             if path and os.path.isfile(path):
                 return True
         return False
+
+    def job_raw_file_path(self, job: Dict[str, Any]) -> str:
+        path = str(job.get("raw_file", "")).strip()
+        return path if path and os.path.isfile(path) else ""
+
+    def job_result_path(self, job: Dict[str, Any]) -> str:
+        for key in ("related_file", "extract_file", "raw_file"):
+            path = str(job.get(key, "")).strip()
+            if path and os.path.isfile(path):
+                return path
+        return ""
+
+    def job_visual_colors(self, job: Dict[str, Any]) -> Tuple[str, str]:
+        """Return foreground/background colors for one Jobs-list row.
+
+        Failure states override category colors. Active/created states get their
+        own warning/running colors. Finished neutral rows fall back to category
+        color so Hyperopt/Backtest/Data/Analysis are easy to scan.
+        """
+        status = str(job.get("status", "UNKNOWN")).upper().strip()
+        category = str(job.get("category", "job")).lower().strip()
+
+        category_fg = {
+            "hyperopt": "#d2a8ff",        # purple
+            "backtest": "#56d364",        # green
+            "analysis": "#79c0ff",        # blue
+            "analysis_batch": "#a5d6ff",  # light blue
+            "data": "#ffa657",            # orange
+        }.get(category, DARK_TEXT)
+
+        # Hard failures should always stand out, regardless of category.
+        if any(token in status for token in ("FAILED", "ERROR", "CRITICAL", "CANCELLED")):
+            return "#ff7b72", "#2d1117"
+
+        if status in {"RUNNING"}:
+            return "#79c0ff", "#0d2233"
+
+        if status in {"CREATED", "STARTED"}:
+            return "#f2cc60", "#2b2111"
+
+        if status in {"EXITED"}:
+            return "#ffa657", "#2b1d0e"
+
+        if status in {"DONE", "OK", "SUCCESS"}:
+            # Keep category identity visible, but use a success-tinted background.
+            return category_fg if category_fg != DARK_TEXT else "#3fb950", "#0f2617"
+
+        if status in {"FINISHED/REMOVED", "HISTORY", "LEGACY_IMPORTED", "UNKNOWN"}:
+            return category_fg if category_fg != DARK_TEXT else "#8b949e", DARK_FIELD
+
+        return category_fg, DARK_FIELD
 
     def update_job_action_buttons(self) -> None:
         """Enable/disable selected-job buttons based on real job state."""
@@ -4082,6 +4113,7 @@ class FreqtradeAllInOneUI:
         if not job:
             set_state("jobs_follow_logs_button", False)
             set_state("jobs_open_result_button", False)
+            set_state("jobs_delete_selected_button", False)
             return
 
         statuses = self.docker_status_map()
@@ -4090,6 +4122,7 @@ class FreqtradeAllInOneUI:
 
         set_state("jobs_follow_logs_button", has_container)
         set_state("jobs_open_result_button", (not active) and self.job_has_explicit_result_file(job))
+        set_state("jobs_delete_selected_button", not active)
 
     def refresh_job_listbox(self) -> None:
         # Always keep the visible registry deduped; no manual cleanup button needed.
@@ -4109,7 +4142,13 @@ class FreqtradeAllInOneUI:
         restore_index = None
         for list_row, idx in enumerate(range(len(self.jobs) - 1, -1, -1)):
             self._job_list_index_map.append(idx)
-            self.job_listbox.insert("end", self.format_job_for_list(self.jobs[idx]))
+            row_text = self.format_job_for_list(self.jobs[idx])
+            self.job_listbox.insert("end", row_text)
+            fg, bg = self.job_visual_colors(self.jobs[idx])
+            try:
+                self.job_listbox.itemconfig(list_row, foreground=fg, background=bg)
+            except Exception:
+                pass
             if old_selection_id and str(self.jobs[idx].get("id", "")) == old_selection_id:
                 restore_index = list_row
 
@@ -4117,9 +4156,92 @@ class FreqtradeAllInOneUI:
             try:
                 self.job_listbox.selection_set(restore_index)
                 self.job_listbox.activate(restore_index)
+                self.job_listbox.see(restore_index)
             except Exception:
                 pass
         self.update_job_action_buttons()
+
+    def select_job_by_listbox_index(self, list_index: int) -> Optional[Dict[str, Any]]:
+        if not hasattr(self, "job_listbox"):
+            return None
+        if list_index < 0 or list_index >= len(self._job_list_index_map):
+            return None
+        try:
+            self.job_listbox.selection_clear(0, "end")
+            self.job_listbox.selection_set(list_index)
+            self.job_listbox.activate(list_index)
+            self.job_listbox.focus_set()
+        except Exception:
+            pass
+        self.update_job_action_buttons()
+        return self.selected_job_record(show_message=False)
+
+    def show_job_context_menu(self, event: Any) -> str:
+        """Right-click menu that selects the clicked row first."""
+        if not hasattr(self, "job_listbox"):
+            return "break"
+
+        try:
+            list_index = self.job_listbox.nearest(event.y)
+            bbox = self.job_listbox.bbox(list_index)
+            if bbox is None:
+                return "break"
+            # Ignore right-clicks clearly outside the visible row rectangle.
+            if event.y < bbox[1] or event.y > (bbox[1] + bbox[3]):
+                return "break"
+        except Exception:
+            return "break"
+
+        job = self.select_job_by_listbox_index(int(list_index))
+        if not job:
+            return "break"
+
+        try:
+            self.refresh_job_statuses()
+        except Exception:
+            pass
+
+        job = self.selected_job_record(show_message=False) or job
+        active = self.job_is_active(job, self.docker_status_map())
+        has_container = bool(job.get("container_name") or job.get("containers"))
+        has_result = (not active) and self.job_has_explicit_result_file(job)
+        has_raw = bool(self.job_raw_file_path(job))
+
+        menu = self.job_context_menu
+        menu.delete(0, "end")
+        menu.add_command(
+            label="Follow logs",
+            command=self.follow_selected_job_logs,
+            state="normal" if has_container else "disabled",
+        )
+        menu.add_command(
+            label="Open result",
+            command=self.open_selected_job_related_file,
+            state="normal" if has_result else "disabled",
+        )
+        menu.add_command(
+            label="Open raw log",
+            command=self.open_selected_job_raw_log,
+            state="normal" if has_raw else "disabled",
+        )
+        menu.add_separator()
+        menu.add_command(
+            label="Delete selected history",
+            command=self.delete_selected_job_history,
+            state="normal" if not active else "disabled",
+        )
+        menu.add_separator()
+        menu.add_command(label="Refresh job status", command=self.refresh_jobs_now)
+        menu.add_command(label="Open jobs folder", command=lambda: self.open_folder(project_path(UI_JOBS_FOLDER_REL)))
+
+        try:
+            menu.tk_popup(event.x_root, event.y_root)
+        finally:
+            try:
+                menu.grab_release()
+            except Exception:
+                pass
+        return "break"
 
     def clean_duplicate_jobs_now(self) -> None:
         before = len(self.jobs)
@@ -4273,7 +4395,7 @@ class FreqtradeAllInOneUI:
         if self.job_is_active(job, self.docker_status_map()):
             messagebox.showinfo(
                 "Job still running",
-                "This job is still running. The result button stays disabled until the job finishes and writes its exact result path.",
+                "This job is still running. Open result is disabled until the job finishes and writes its exact result path.",
             )
             self.refresh_job_listbox()
             return
@@ -4288,13 +4410,23 @@ class FreqtradeAllInOneUI:
             return
         self.open_file_path(path, "Open selected result")
 
+    def open_selected_job_raw_log(self) -> None:
+        job = self.selected_job_record()
+        if not job:
+            return
+        path = self.job_raw_file_path(job)
+        if not path:
+            messagebox.showwarning("No raw log", "This selected job has no recorded raw log file yet.")
+            return
+        self.open_file_path(path, "Open raw log")
+
     def selected_job_record(self, show_message: bool = True) -> Optional[Dict[str, Any]]:
         if not hasattr(self, "job_listbox"):
             return None
         selection = self.job_listbox.curselection()
         if not selection:
             if show_message:
-                messagebox.showinfo("No job selected", "Select a job first.")
+                messagebox.showinfo("No job selected", "Select a job first, or right-click a row.")
             return None
         list_index = int(selection[0])
         if list_index >= len(self._job_list_index_map):
@@ -4322,29 +4454,70 @@ class FreqtradeAllInOneUI:
         else:
             subprocess.Popen(["docker", "logs", "-f", container], cwd=PROJECT_ROOT)
 
+    def delete_selected_job_history(self) -> None:
+        """Delete only the selected non-active job-history row."""
+        job = self.selected_job_record()
+        if not job:
+            return
+
+        self.refresh_job_statuses()
+        statuses = self.docker_status_map()
+        if self.job_is_active(job, statuses):
+            messagebox.showinfo(
+                "Job still active",
+                "This job is still running/starting, so it will not be removed from history yet.",
+            )
+            self.refresh_job_listbox()
+            return
+
+        title = str(job.get("title", job.get("container_name", "selected job")))
+        confirm = messagebox.askyesno(
+            "Delete selected history",
+            f"Delete this finished/history job row?\n\n{title}\n\nResult/log files are not deleted.",
+        )
+        if not confirm:
+            return
+
+        job_id = str(job.get("id", "")).strip()
+        container_name = str(job.get("container_name", "")).strip()
+        cmd_file = str(job.get("cmd_file", "")).strip()
+
+        def same_job(candidate: Dict[str, Any]) -> bool:
+            if job_id and str(candidate.get("id", "")).strip() == job_id:
+                return True
+            if container_name and str(candidate.get("container_name", "")).strip() == container_name:
+                return True
+            return False
+
+        self.jobs = [candidate for candidate in self.jobs if not same_job(candidate)]
+
+        if cmd_file and os.path.isfile(cmd_file):
+            try:
+                os.remove(cmd_file)
+            except Exception:
+                pass
+
+        self.cleanup_job_temp_files(self.jobs)
+        self.refresh_job_listbox()
+        self.write_jobs_registry_direct()
+        self.save_state()
+
     def open_selected_job_json(self) -> None:
-        # There is intentionally only one JSON file: the job registry.
+        # Kept only for backward compatibility if called by old shortcuts.
         path = self.job_registry_path()
         self.save_jobs_registry()
         self.open_file_path(path, "Open job registry")
 
     def open_selected_job_cmd(self) -> None:
+        # Kept only for backward compatibility if called by old shortcuts.
         job = self.selected_job_record()
         if not job:
             return
         path = str(job.get("cmd_file", ""))
         if not path or not os.path.isfile(path):
-            messagebox.showwarning("CMD not found", "This job does not have a stored CMD file.")
+            messagebox.showwarning("CMD not found", "This job does not have an active temporary CMD file.")
             return
-        try:
-            if os.name == "nt":
-                subprocess.Popen(["notepad.exe", path], cwd=PROJECT_ROOT)
-            elif sys.platform == "darwin":
-                subprocess.Popen(["open", path])
-            else:
-                subprocess.Popen(["xdg-open", path])
-        except Exception as e:
-            messagebox.showerror("Open CMD failed", str(e))
+        self.open_file_path(path, "Open selected CMD")
 
     def schedule_job_status_refresh(self) -> None:
         try:
