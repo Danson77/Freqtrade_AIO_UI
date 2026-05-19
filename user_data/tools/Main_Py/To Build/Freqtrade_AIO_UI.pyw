@@ -2991,7 +2991,7 @@ class FreqtradeAllInOneUI:
         ttk.Label(header, text="Running + job history", style="Header.TLabel").grid(row=0, column=0, sticky="w")
         ttk.Label(
             header,
-            text="Right-click a job for actions. Failed jobs are red; running/created are highlighted; categories use their own colors.",
+            text="Right-click a job row for actions. Failed jobs are red; running/created are highlighted; categories use their own colors.",
             style="Detail.TLabel",
         ).grid(row=1, column=0, sticky="w", pady=(3, 0))
 
@@ -3016,14 +3016,6 @@ class FreqtradeAllInOneUI:
         self.jobs_refresh_button = ttk.Button(buttons, text="Refresh job status", command=self.refresh_jobs_now)
         self.jobs_refresh_button.pack(side="left", padx=4)
 
-        self.jobs_follow_logs_button = ttk.Button(buttons, text="Follow selected logs", command=self.follow_selected_job_logs)
-        self.jobs_follow_logs_button.pack(side="left", padx=4)
-
-        self.jobs_open_result_button = ttk.Button(buttons, text="Open selected result", command=self.open_selected_job_related_file)
-        self.jobs_open_result_button.pack(side="left", padx=4)
-
-        self.jobs_delete_selected_button = ttk.Button(buttons, text="Delete selected history", command=self.delete_selected_job_history)
-        self.jobs_delete_selected_button.pack(side="left", padx=4)
 
         ttk.Button(buttons, text="Open jobs folder", command=lambda: self.open_folder(project_path(UI_JOBS_FOLDER_REL))).pack(side="left", padx=4)
         ttk.Button(buttons, text="Open logs", command=lambda: self.open_folder(project_path(RAW_OUTPUT_FOLDER_REL))).pack(side="left", padx=4)
