@@ -36,32 +36,65 @@ Current AIO builds also focus on keeping job history clean: one registry JSON, t
 
 ## AIO UI Features
 
-| Feature                   | Description                                                                                                           |
-| ------------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| **Dark UI**               | Compact dark interface with tabs and scrollbars for smaller screens.                                                  |
-| **Backtest**              | Builds and runs `freqtrade backtesting` commands.                                                                     |
-| **Hyperopt**              | Builds and runs `freqtrade hyperopt` commands with spaces, workers, epochs, loss function, and random-state options.  |
-| **Analysis**              | Builds and runs `lookahead-analysis` and `recursive-analysis`.                                                        |
-| **Data**                  | Builds and runs `download-data`, `list-data`, and timerange listing commands.                                         |
-| **Paths**                 | Lets output folders be configured from the UI.                                                                        |
-| **Jobs**                  | Colored running/history list with right-click actions for logs, results, raw output, and individual history deletion. |
-| **Saved defaults**        | Saves common values so the same options do not need to be reselected every run.                                       |
-| **Detached jobs**         | Docker/CMD jobs can continue after the main UI is closed.                                                             |
-| **Portable project root** | The Freqtrade project folder can be changed and saved.                                                                |
-| **Clean state JSON**      | Settings are saved compactly without storing large generated pairlists.                                               |
+| Feature                   | Description                                                                                                                                  |
+| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Dark UI**               | Compact dark interface with tabs and scrollbars for smaller screens.                                                                         |
+| **Backtest**              | Builds and runs `freqtrade backtesting` commands.                                                                                            |
+| **Hyperopt**              | Builds and runs `freqtrade hyperopt` commands with spaces, workers, epochs, loss function, and random-state options.                         |
+| **Analysis**              | Builds and runs `lookahead-analysis` and `recursive-analysis`.                                                                               |
+| **Data**                  | Builds and runs `download-data`, `list-data`, and timerange listing commands.                                                                |
+| **Paths**                 | Lets output folders be configured from the UI.                                                                                               |
+| **Jobs**                  | Colored running/history list with right-click actions for logs, results, raw output, stale-running cleanup, and individual history deletion. |
+| **Saved defaults**        | Header buttons can save/load defaults for the selected tab, or save all command-tab defaults at once.                                        |
+| **Detached jobs**         | Docker/CMD jobs can continue after the main UI is closed.                                                                                    |
+| **Portable project root** | The Freqtrade project folder can be changed and saved.                                                                                       |
+| **Clean state JSON**      | Settings are saved compactly without storing large generated pairlists.                                                                      |
+| **Header shortcuts**      | Top bar includes `Open user_data folder`, `Open extract folder`, project-folder switching, refresh, and default controls.                    |
+| **Command copy location** | `Copy command` is placed under each Command Preview box instead of cluttering the main action row.                                           |
 
 ---
 
 ## AIO UI Tabs
 
-| Tab          | Main use                                                                                            |
-| ------------ | --------------------------------------------------------------------------------------------------- |
-| **Backtest** | Timerange presets, cache toggle, max-market-position toggle, position stacking, and report opening. |
-| **Hyperopt** | Spaces, epochs, workers, loss selection, seed presets, and output extraction.                       |
-| **Analysis** | Lookahead/recursive analysis with config, recommended, or manual pair modes.                        |
-| **Data**     | Download/list market data, validate timeframes, and open audit files.                               |
-| **Paths**    | Configure output folders for reports, raw logs, extracts, and audits.                               |
-| **Jobs**     | Colored job history, right-click actions, refresh, folders, logs, and safe history cleanup.         |
+| Tab          | Main use                                                                                                             |
+| ------------ | -------------------------------------------------------------------------------------------------------------------- |
+| **Backtest** | Timerange presets, cache toggle, max-market-position toggle, position stacking, run command, and open latest report. |
+| **Hyperopt** | Spaces, epochs, workers, loss selection, seed presets, run command, and open latest extract.                         |
+| **Analysis** | Lookahead/recursive analysis with config, recommended/manual pair modes, recursive helpers, and open latest extract. |
+| **Data**     | Download/list market data, validate timeframes, run data commands, and open latest audit/list file.                  |
+| **Paths**    | Configure output folders for reports, raw logs, extracts, and audits.                                                |
+| **Jobs**     | Colored job history, right-click actions, refresh, folders, logs, stale-running cleanup, and safe history cleanup.   |
+
+---
+
+## AIO Header Controls and Tab Layout
+
+Newer AIO builds keep the per-tab action rows tighter. Global/default actions live in the top header, while each command tab keeps only the buttons directly related to running/opening that tab's output.
+
+### Header buttons
+
+| Header control               | Purpose                                                                                       |
+| ---------------------------- | --------------------------------------------------------------------------------------------- |
+| **Open with saved defaults** | Loads saved defaults at startup instead of only restoring last current values.                |
+| **Save settings**            | Saves current UI state, project root, path settings, and selected values.                     |
+| **Save tab defaults**        | Saves defaults for the currently selected command tab: Backtest, Hyperopt, Analysis, or Data. |
+| **Load tab defaults**        | Loads defaults for the currently selected command tab.                                        |
+| **Save ALL defaults**        | Saves defaults for all command tabs at once.                                                  |
+| **Open user_data folder**    | Opens `<project_root>/user_data`.                                                             |
+| **Open extract folder**      | Opens the configured Hyperopt extracts folder, defaulting to `user_data/hyperopt_extracts`.   |
+| **Change project folder**    | Selects a different Freqtrade project root.                                                   |
+| **Refresh files**            | Refreshes detected configs, strategies, data configs, and custom hyperopt losses.             |
+
+### Per-tab action rows
+
+| Tab          | Buttons kept beside the tab controls                                                                  |
+| ------------ | ----------------------------------------------------------------------------------------------------- |
+| **Backtest** | `Run Backtest in new CMD`, `Open latest report`.                                                      |
+| **Hyperopt** | `Run Hyperopt in new CMD`, `Open latest extract`.                                                     |
+| **Analysis** | `Run Analysis in new CMD`, `Open latest analysis extract`, plus recursive helper buttons when needed. |
+| **Data**     | `Run Data command in new CMD`, `Open latest data audit`.                                              |
+
+`Copy command` now sits under the **Command Preview** box for each command tab. This keeps the action row cleaner and makes the generated command easier to verify before copying.
 
 ---
 
@@ -718,6 +751,9 @@ Suggested:
 | Recursive per-pair analysis mode                  | Included   |
 | Detached job tracking and result-file opening     | Included   |
 | Colored Jobs tab rows and right-click actions     | Included   |
+| Header tab-default save/load controls             | Included   |
+| Compact command-tab action rows                   | Included   |
+| Command Preview copy buttons                      | Included   |
 | Single job registry without per-job JSON sidecars | Included   |
 | Safe clear-history / delete-selected history      | Included   |
 | Raspberry Pi OS / Debian-based setup              | Included   |
@@ -784,7 +820,7 @@ Use Tailscale/VPN or strict firewall rules for Freqtrade UI/API access.
 
 This repository is mainly a **Freqtrade Windows AIO UI + automation toolkit**.
 
-The Windows AIO UI handles repeated Docker-based Freqtrade work: Backtest, Hyperopt, Analysis, Data download/listing, recursive per-pair analysis, colored detached job tracking, right-click job actions, saved defaults, output paths, and related report opening.
+The Windows AIO UI handles repeated Docker-based Freqtrade work: Backtest, Hyperopt, Analysis, Data download/listing, recursive per-pair analysis, colored detached job tracking, right-click job actions, selected-tab defaults, compact command rows, output paths, command preview copying, and related report opening.
 
 The Raspberry Pi OS / Debian-based scripts prepare live bot machines with Freqtrade services, automatic Linux user detection, auto-detected LAN firewall rules, Tailscale access, Netdata monitoring, ZRAM, maintenance timers, and software-controlled fan support.
 
