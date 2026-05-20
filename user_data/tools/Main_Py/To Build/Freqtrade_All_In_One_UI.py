@@ -2,7 +2,7 @@
 """
 Freqtrade All-In-One UI Tool
 
-Version: v31 colored jobs + right-click job actions
+Version: v33 stale-running job cleanup + delete-any-history
 
 Tabs:
 - Backtest
@@ -1468,6 +1468,10 @@ def update_job_record_file(path: str, updates: Dict[str, Any]) -> None:
             except Exception:
                 pass
 
+        deleted_ids = {str(x).strip() for x in data.get("deleted_job_ids", []) if str(x).strip()}
+        if job_id in deleted_ids:
+            return
+
         jobs = data.get("jobs", [])
         if not isinstance(jobs, list):
             jobs = []
@@ -1496,6 +1500,7 @@ def update_job_record_file(path: str, updates: Dict[str, Any]) -> None:
         data["schema_version"] = 2
         data["project_root"] = PROJECT_ROOT
         data["saved_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        data["deleted_job_ids"] = sorted(deleted_ids)[-1000:]
         data["jobs"] = jobs[-300:]
 
         Path(path).write_text(json.dumps(data, indent=2), encoding="utf-8", newline="\n")
@@ -2056,6 +2061,7 @@ class FreqtradeAllInOneUI:
         self.data_configs = list_data_config_files()
         self.strategies = list_strategy_classes()
         self.custom_losses = list_custom_hyperopt_losses()
+        self.deleted_job_ids: set[str] = self.load_deleted_job_ids()
         self.jobs: List[Dict[str, Any]] = self.load_jobs_registry()
         self._job_list_index_map: List[int] = []
 
@@ -2991,7 +2997,7 @@ class FreqtradeAllInOneUI:
         ttk.Label(header, text="Running + job history", style="Header.TLabel").grid(row=0, column=0, sticky="w")
         ttk.Label(
             header,
-            text="Right-click a job row for actions. Failed jobs are red; running/created are highlighted; categories use their own colors.",
+            text="Right-click a job row for actions. Failed jobs are red; running/created are highlighted; stale rows can be deleted.",
             style="Detail.TLabel",
         ).grid(row=1, column=0, sticky="w", pady=(3, 0))
 
@@ -3647,6 +3653,45 @@ class FreqtradeAllInOneUI:
 
         return out
 
+    def load_deleted_job_ids(self) -> set[str]:
+        """Read tombstoned job IDs from the single registry.
+
+        A job deleted from the UI while its child process is still alive must not
+        be recreated later when that child writes final status back to the
+        registry. The tombstone list is compact and stored in the same registry.
+        """
+        try:
+            path = self.job_registry_path()
+            if not os.path.isfile(path):
+                return set()
+            data = json.loads(Path(path).read_text(encoding="utf-8", errors="replace"))
+            if not isinstance(data, dict):
+                return set()
+            return {str(x).strip() for x in data.get("deleted_job_ids", []) if str(x).strip()}
+        except Exception:
+            return set()
+
+    def is_recent_job(self, job: Dict[str, Any], seconds: int = 600) -> bool:
+        raw = str(job.get("started_at", "")).strip()[:19]
+        try:
+            started = datetime.strptime(raw, "%Y-%m-%d %H:%M:%S")
+            return (datetime.now() - started).total_seconds() < seconds
+        except Exception:
+            return False
+
+    def job_live_docker_status(self, job: Dict[str, Any], statuses: Optional[Dict[str, str]] = None) -> str:
+        statuses = statuses or {}
+        containers = [str(x).strip() for x in job.get("containers", []) if str(x).strip()]
+        if not containers and job.get("container_name"):
+            containers = [str(job.get("container_name")).strip()]
+
+        live_parts: List[str] = []
+        for container in containers:
+            docker_status = statuses.get(container, "")
+            if docker_status.lower().startswith(("up", "created")):
+                live_parts.append(f"{container}: {docker_status}")
+        return "; ".join(live_parts)
+
     def load_jobs_registry(self) -> List[Dict[str, Any]]:
         jobs: List[Dict[str, Any]] = []
 
@@ -3662,6 +3707,8 @@ class FreqtradeAllInOneUI:
                         record = self.normalize_job_record(item)
                         if record:
                             record["json_file"] = ""
+                            if str(record.get("id", "")).strip() in getattr(self, "deleted_job_ids", set()):
+                                continue
                             jobs.append(record)
         except Exception:
             pass
@@ -3674,35 +3721,27 @@ class FreqtradeAllInOneUI:
         return jobs
 
     def job_is_active(self, job: Dict[str, Any], statuses: Optional[Dict[str, str]] = None) -> bool:
-        """True for jobs that should survive Clear history and keep their CMD file."""
+        """True only for jobs that still appear genuinely active.
+
+        Old versions treated any saved status of RUNNING as active forever. That
+        made stale rows impossible to delete. Now RUNNING is active only when
+        Docker still reports the container as Up/Created, or while a very fresh
+        launcher is still inside the short start grace window.
+        """
         statuses = statuses or {}
         status = str(job.get("status", "")).upper().strip()
 
-        containers = [str(x).strip() for x in job.get("containers", []) if str(x).strip()]
-        if not containers and job.get("container_name"):
-            containers = [str(job.get("container_name")).strip()]
-
-        for container in containers:
-            docker_status = statuses.get(container, "")
-            if docker_status.lower().startswith(("up", "created")):
-                return True
-
-        if status == "RUNNING":
+        if self.job_live_docker_status(job, statuses):
             return True
 
-        if status in {"STARTED", "CREATED"}:
-            cmd_file = str(job.get("cmd_file", "")).strip()
-            if cmd_file and os.path.isfile(cmd_file):
-                return True
+        if status in {"DONE", "FAILED", "CANCELLED", "ERROR", "EXITED", "FINISHED/REMOVED", "STALE/RUNNING"}:
+            return False
 
-            # Grace window for very freshly launched silent jobs where Docker may not
-            # have appeared in docker ps yet.
-            raw = str(job.get("started_at", "")).strip()[:19]
-            try:
-                started = datetime.strptime(raw, "%Y-%m-%d %H:%M:%S")
-                return (datetime.now() - started).total_seconds() < 600
-            except Exception:
-                return False
+        if status in {"STARTED", "CREATED", "RUNNING"}:
+            cmd_file = str(job.get("cmd_file", "")).strip()
+            if cmd_file and os.path.isfile(cmd_file) and self.is_recent_job(job, seconds=600):
+                return True
+            return self.is_recent_job(job, seconds=600)
 
         return False
 
@@ -3821,7 +3860,7 @@ class FreqtradeAllInOneUI:
         # No-op. Only Freqtrade_AIO_UI_jobs.json should exist.
         return
 
-    def write_jobs_registry_direct(self) -> None:
+    def write_jobs_registry_direct(self, cleanup: bool = True) -> None:
         """Write the current in-memory job list without merging old registry rows.
 
         Used by Clear history. Without this direct write, save_jobs_registry() first
@@ -3845,10 +3884,12 @@ class FreqtradeAllInOneUI:
                 "schema_version": 2,
                 "project_root": PROJECT_ROOT,
                 "saved_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "deleted_job_ids": sorted(getattr(self, "deleted_job_ids", set()))[-1000:],
                 "jobs": self.jobs[-300:],
             }
             Path(self.job_registry_path()).write_text(json.dumps(data, indent=2), encoding="utf-8", newline="\n")
-            self.cleanup_job_temp_files(self.jobs)
+            if cleanup:
+                self.cleanup_job_temp_files(self.jobs)
         except Exception:
             pass
 
@@ -3878,6 +3919,7 @@ class FreqtradeAllInOneUI:
                 "schema_version": 2,
                 "project_root": PROJECT_ROOT,
                 "saved_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "deleted_job_ids": sorted(getattr(self, "deleted_job_ids", set()))[-1000:],
                 "jobs": self.jobs[-300:],
             }
             Path(self.job_registry_path()).write_text(json.dumps(data, indent=2), encoding="utf-8", newline="\n")
@@ -3969,7 +4011,7 @@ class FreqtradeAllInOneUI:
         self.merge_job_json_updates()
         statuses = self.docker_status_map()
         changed = False
-        terminal_statuses = {"DONE", "FAILED", "CANCELLED", "ERROR", "FINISHED/REMOVED"}
+        terminal_statuses = {"DONE", "FAILED", "CANCELLED", "ERROR", "FINISHED/REMOVED", "STALE/RUNNING"}
 
         for job in self.jobs:
             containers = [str(x) for x in job.get("containers", []) if str(x).strip()]
@@ -3982,28 +4024,38 @@ class FreqtradeAllInOneUI:
             exited = [item for item in found if item[1].lower().startswith("exited")]
             created = [item for item in found if item[1].lower().startswith("created")]
             old_status = str(job.get("status", ""))
+            old_upper = old_status.upper().strip()
 
             if running:
                 job["status"] = "RUNNING"
                 job["docker_status"] = "; ".join(f"{n}: {s}" for n, s in running[:3])
-            elif exited:
-                job["status"] = "EXITED"
-                job["docker_status"] = "; ".join(f"{n}: {s}" for n, s in exited[:3])
             elif created:
                 job["status"] = "CREATED"
                 job["docker_status"] = "; ".join(f"{n}: {s}" for n, s in created[:3])
-            elif old_status.upper() in terminal_statuses or job.get("finished_at") or job.get("returncode") not in (None, ""):
-                # Child runner already wrote final status to the registry.
+            elif exited:
+                job["status"] = "EXITED"
+                job["docker_status"] = "; ".join(f"{n}: {s}" for n, s in exited[:3])
+                job["cmd_file"] = ""
+                job["json_file"] = ""
+            elif old_upper in terminal_statuses or job.get("finished_at") or job.get("returncode") not in (None, ""):
                 job["status"] = old_status or ("DONE" if str(job.get("returncode", "")) == "0" else "FAILED")
                 job["docker_status"] = job.get("docker_status", "finished")
                 job["cmd_file"] = ""
                 job["json_file"] = ""
             elif containers:
-                # Most normal runs use --rm, so finished containers disappear.
                 job["status"] = "FINISHED/REMOVED"
                 job["docker_status"] = "container not present; likely finished or removed"
                 job["cmd_file"] = ""
                 job["json_file"] = ""
+            elif old_upper in {"RUNNING", "STARTED", "CREATED"}:
+                if self.is_recent_job(job, seconds=600):
+                    job["status"] = old_status or "STARTED"
+                    job["docker_status"] = "startup grace window"
+                else:
+                    job["status"] = "STALE/RUNNING"
+                    job["docker_status"] = "no container recorded and startup grace expired"
+                    job["cmd_file"] = ""
+                    job["json_file"] = ""
             else:
                 job["status"] = job.get("status") or "HISTORY"
                 job["json_file"] = ""
@@ -4075,7 +4127,7 @@ class FreqtradeAllInOneUI:
         if status in {"CREATED", "STARTED"}:
             return "#f2cc60", "#2b2111"
 
-        if status in {"EXITED"}:
+        if status in {"EXITED", "STALE/RUNNING"}:
             return "#ffa657", "#2b1d0e"
 
         if status in {"DONE", "OK", "SUCCESS"}:
@@ -4114,7 +4166,7 @@ class FreqtradeAllInOneUI:
 
         set_state("jobs_follow_logs_button", has_container)
         set_state("jobs_open_result_button", (not active) and self.job_has_explicit_result_file(job))
-        set_state("jobs_delete_selected_button", not active)
+        set_state("jobs_delete_selected_button", True)
 
     def refresh_job_listbox(self) -> None:
         # Always keep the visible registry deduped; no manual cleanup button needed.
@@ -4220,7 +4272,7 @@ class FreqtradeAllInOneUI:
         menu.add_command(
             label="Delete selected history",
             command=self.delete_selected_job_history,
-            state="normal" if not active else "disabled",
+            state="normal",
         )
         menu.add_separator()
         menu.add_command(label="Refresh job status", command=self.refresh_jobs_now)
@@ -4447,32 +4499,49 @@ class FreqtradeAllInOneUI:
             subprocess.Popen(["docker", "logs", "-f", container], cwd=PROJECT_ROOT)
 
     def delete_selected_job_history(self) -> None:
-        """Delete only the selected non-active job-history row."""
+        """Delete the selected job-history row, even if it is stuck as RUNNING.
+
+        This removes only the AIO registry/history row. It does not stop Docker,
+        does not kill CMD, and does not delete reports/extracts/raw logs. If the
+        child process later tries to write final status, the tombstone ID prevents
+        the deleted row from reappearing.
+        """
         job = self.selected_job_record()
         if not job:
             return
 
         self.refresh_job_statuses()
         statuses = self.docker_status_map()
-        if self.job_is_active(job, statuses):
-            messagebox.showinfo(
-                "Job still active",
-                "This job is still running/starting, so it will not be removed from history yet.",
-            )
-            self.refresh_job_listbox()
-            return
+        active = self.job_is_active(job, statuses)
 
         title = str(job.get("title", job.get("container_name", "selected job")))
-        confirm = messagebox.askyesno(
-            "Delete selected history",
-            f"Delete this finished/history job row?\n\n{title}\n\nResult/log files are not deleted.",
-        )
+        status = str(job.get("status", "UNKNOWN"))
+        if active:
+            message = (
+                "This job still appears active. Delete only the AIO history row?\n\n"
+                f"Status: {status}\n"
+                f"{title}\n\n"
+                "Docker/CMD is NOT stopped. Result/log files are NOT deleted. "
+                "The deleted row will not be re-created by late child updates."
+            )
+        else:
+            message = (
+                "Delete this finished/stale/history job row?\n\n"
+                f"Status: {status}\n"
+                f"{title}\n\n"
+                "Result/log files are not deleted."
+            )
+
+        confirm = messagebox.askyesno("Delete selected history", message)
         if not confirm:
             return
 
         job_id = str(job.get("id", "")).strip()
         container_name = str(job.get("container_name", "")).strip()
         cmd_file = str(job.get("cmd_file", "")).strip()
+
+        if job_id:
+            self.deleted_job_ids.add(job_id)
 
         def same_job(candidate: Dict[str, Any]) -> bool:
             if job_id and str(candidate.get("id", "")).strip() == job_id:
@@ -4483,15 +4552,16 @@ class FreqtradeAllInOneUI:
 
         self.jobs = [candidate for candidate in self.jobs if not same_job(candidate)]
 
-        if cmd_file and os.path.isfile(cmd_file):
+        if (not active) and cmd_file and os.path.isfile(cmd_file):
             try:
                 os.remove(cmd_file)
             except Exception:
                 pass
 
-        self.cleanup_job_temp_files(self.jobs)
+        if not active:
+            self.cleanup_job_temp_files(self.jobs)
         self.refresh_job_listbox()
-        self.write_jobs_registry_direct()
+        self.write_jobs_registry_direct(cleanup=not active)
         self.save_state()
 
     def open_selected_job_json(self) -> None:
@@ -4543,6 +4613,10 @@ class FreqtradeAllInOneUI:
         for job in self.jobs:
             if self.job_is_active(job, statuses):
                 kept.append(job)
+            else:
+                job_id = str(job.get("id", "")).strip()
+                if job_id:
+                    self.deleted_job_ids.add(job_id)
 
         self.jobs = self.dedupe_jobs(kept)[-300:]
         self.cleanup_job_temp_files(self.jobs)
